@@ -20,3 +20,6 @@ desktop.ini
 # Editor
 .vscode/
 .idea/
+
+# Local Claude Code instructions
+CLAUDE.md

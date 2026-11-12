@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Automation LL2C — Automations that run your back office</title>
+  <meta name="description" content="AI Automation LL2C designs, builds and maintains AI automations for lead follow-up, customer support, documents and reporting." />
+  <link rel="icon" type="image/svg+xml" href="brand_assets/logo-favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <script>document.documentElement.classList.add('js');</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: { DEFAULT: '#031B2F', 2: '#0B3954' },
+            ice: '#BFD7EA',
+            aqua: '#70E4EF',
+            lime: '#E0FF4F',
+            coral: '#FF6663',
+            ink: '#1A1A1A',
+          },
+          fontFamily: {
+            display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            body: ['"Segoe UI"', '"Segoe UI Symbol"', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    :root {
+      --navy: #031B2F;
+      --navy-2: #0B3954;
+      --ice: #BFD7EA;
+      --aqua: #70E4EF;
+      --lime: #E0FF4F;
+      --coral: #FF6663;
+      --spring: cubic-bezier(.34, 1.56, .64, 1);
+      --ease-out: cubic-bezier(.22, 1, .36, 1);
+      /* depth system: base → elevated → floating */
+      --shadow-elevated: 0 1px 0 0 rgba(191, 215, 234, .06) inset, 0 24px 48px -24px rgba(1, 10, 20, .75), 0 2px 6px -2px rgba(1, 10, 20, .4);
+      --shadow-floating: 0 1px 0 0 rgba(191, 215, 234, .10) inset, 0 40px 80px -32px rgba(1, 8, 16, .9), 0 16px 32px -16px rgba(112, 228, 239, .14), 0 0 0 1px rgba(112, 228, 239, .10);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background-color: var(--navy);
+      background-image:
+        radial-gradient(60rem 40rem at 85% -10%, rgba(112, 228, 239, .10), transparent 60%),
+        radial-gradient(50rem 50rem at -10% 20%, rgba(11, 57, 84, .85), transparent 65%),
+        radial-gradient(40rem 30rem at 60% 110%, rgba(11, 57, 84, .6), transparent 70%);
+      background-attachment: fixed;
+      color: #fff;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* grain */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 60;
+      opacity: .07; mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* wire network canvas */
+    #wires { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    .page { position: relative; z-index: 1; }
+
+    .display { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; letter-spacing: -0.03em; line-height: 1.05; text-wrap: balance; }
+    .measure { max-width: 62ch; }
+
+    .surface-elevated { background: rgba(8, 44, 68, .55); box-shadow: var(--shadow-elevated); border: 1px solid rgba(191, 215, 234, .08); backdrop-filter: blur(6px); }
+    .surface-floating { background: linear-gradient(180deg, rgba(14, 66, 96, .92), rgba(6, 36, 58, .94)); box-shadow: var(--shadow-floating); backdrop-filter: blur(12px); }
+
+    /* scroll progress wire */
+    #progress { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: linear-gradient(90deg, rgba(112,228,239,.2), var(--aqua)); transform: scaleX(0); transform-origin: left; }
+
+    /* buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 700; font-size: .95rem;
+      border-radius: 999px; padding: .9rem 1.5rem; line-height: 1;
+      transition: transform .35s var(--spring), opacity .2s ease;
+      will-change: transform;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(1px) scale(.98); transition-duration: .1s; }
+    .btn:focus-visible, .link:focus-visible, summary:focus-visible, .tab:focus-visible { outline: 2px solid var(--aqua); outline-offset: 3px; }
+    .btn-primary { position: relative; overflow: hidden; background: var(--lime); color: var(--navy); box-shadow: 0 10px 30px -12px rgba(224, 255, 79, .55), 0 2px 4px rgba(3, 27, 47, .3); }
+    .btn-primary::after { /* sheen on hover */
+      content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%);
+      transform: translateX(-120%); transition: transform .8s var(--ease-out);
+    }
+    .btn-primary:hover::after { transform: translateX(120%); }
+    .btn-ghost { color: #fff; border: 1px solid rgba(191, 215, 234, .28); background: rgba(3, 27, 47, .35); }
+    .btn-ghost:hover { opacity: .9; }
+
+    .link { position: relative; color: var(--ice); transition: opacity .2s ease; border-radius: 4px; }
+    .link::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: -4px; height: 1px; background: var(--aqua);
+      transform: scaleX(0); transform-origin: left; transition: transform .4s var(--ease-out);
+    }
+    .link:hover { color: #fff; }
+    .link:hover::after { transform: scaleX(1); }
+    .link:active { opacity: .7; }
+
+    /* hero headline rise */
+    .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .12em; margin-bottom: -.12em; }
+    .w > span { display: inline-block; }
+    .js .w > span { transform: translateY(110%); animation: rise 1s var(--ease-out) forwards; animation-delay: calc(var(--i) * 70ms + 150ms); }
+    @keyframes rise { to { transform: translateY(0); } }
+    .js .hero-in { opacity: 0; transform: translateY(16px); animation: fadeUp .9s var(--ease-out) forwards; animation-delay: var(--d, .9s); }
+    @keyframes fadeUp { to { opacity: 1; transform: none; } }
+
+    /* hero run panel */
+    .tab { position: relative; white-space: nowrap; border-radius: 999px; padding: .45rem .9rem; font-size: .8rem; font-weight: 600; color: var(--ice); transition: opacity .2s ease, transform .3s var(--spring); }
+    .tab:hover { color: #fff; }
+    .tab:active { transform: scale(.96); }
+    .tab[aria-selected="true"] { color: var(--navy); }
+    .tab-pill { position: absolute; top: 4px; left: 0; height: calc(100% - 8px); border-radius: 999px; background: var(--aqua); transition: transform .5s var(--spring); transform-origin: left; }
+    .run-body { transition: opacity .3s ease; }
+    .run-body.swap { opacity: 0; }
+    .run-step { opacity: .28; transition: opacity .5s var(--ease-out); }
+    .run-step .dot { transform: scale(.6); transition: transform .5s var(--spring); }
+    .run-step .stamp { opacity: 0; transform: translateX(-6px); transition: opacity .4s ease, transform .5s var(--spring); }
+    .run-step.on { opacity: 1; }
+    .run-step.on .dot { transform: scale(1); }
+    .run-step.on .stamp { opacity: 1; transform: translateX(0); }
+    .run-track-fill { transform: scaleY(0); transform-origin: top; transition: transform .9s var(--ease-out); }
+    .run-done { opacity: 0; transform: translateY(8px); transition: opacity .5s ease, transform .6s var(--spring); }
+    .run-done.on { opacity: 1; transform: translateY(0); }
+
+    /* tools marquee */
+    .marquee { mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+    .marquee-track { display: flex; width: max-content; animation: slide 38s linear infinite; }
+    .marquee:hover .marquee-track { animation-play-state: paused; }
+    @keyframes slide { to { transform: translateX(-50%); } }
+
+    /* cursor spotlight */
+    .spot { position: relative; overflow: hidden; }
+    .spot-glow { position: absolute; left: 0; top: 0; width: 460px; height: 460px; margin: -230px 0 0 -230px; border-radius: 50%; pointer-events: none; z-index: 2; mix-blend-mode: screen;
+      background: radial-gradient(circle, rgba(112, 228, 239, .16), rgba(112, 228, 239, 0) 62%); opacity: 0; transition: opacity .4s ease; }
+    .spot:hover .spot-glow { opacity: 1; }
+
+    /* services rows */
+    .svc { position: relative; }
+    .svc::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: linear-gradient(90deg, var(--aqua), rgba(112,228,239,0)); transform: scaleX(0); transform-origin: left; transition: transform .7s var(--ease-out); }
+    .svc:hover::after { transform: scaleX(1); }
+    .svc h3 { transition: transform .45s var(--spring); }
+    .svc:hover h3 { transform: translateX(8px); }
+    .svc .svc-node { transform: scale(0); transition: transform .45s var(--spring); }
+    .svc:hover .svc-node { transform: scale(1); }
+
+    /* scroll reveals */
+    .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .9s var(--ease-out), transform .9s var(--ease-out); transition-delay: var(--d, 0s); }
+    .js .reveal.in { opacity: 1; transform: none; }
+    .js .proc-line { transform: scaleX(0); transform-origin: left; transition: transform 1.6s var(--ease-out); }
+    .js .proc.in .proc-line { transform: scaleX(1); }
+    .js .proc-num { opacity: .25; transform: scale(.7); transition: opacity .5s ease, transform .6s var(--spring); transition-delay: var(--d); }
+    .js .proc.in .proc-num { opacity: 1; transform: scale(1); }
+    .js .bar { transform: scaleX(0); transform-origin: left; transition: transform 1.4s var(--ease-out); transition-delay: .2s; }
+    .js .in .bar { transform: scaleX(var(--to)); }
+
+    /* calculator sliders */
+    input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer; }
+    input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(90deg, var(--aqua) var(--p, 50%), rgba(191,215,234,.15) var(--p, 50%)); }
+    input[type=range]::-moz-range-track { height: 4px; border-radius: 4px; background: rgba(191,215,234,.15); }
+    input[type=range]::-moz-range-progress { height: 4px; border-radius: 4px; background: var(--aqua); }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -8px; border-radius: 50%; background: #fff; border: 4px solid var(--aqua); box-shadow: 0 0 0 6px rgba(112,228,239,.12); transition: transform .3s var(--spring); }
+    input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 4px solid var(--aqua); transition: transform .3s var(--spring); }
+    input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.12); }
+    input[type=range]:active::-webkit-slider-thumb { transform: scale(1.25); }
+    input[type=range]:active::-moz-range-thumb { transform: scale(1.25); }
+    input[type=range]:focus-visible { outline: 2px solid var(--aqua); outline-offset: 6px; border-radius: 6px; }
+
+    /* faq */
+    details summary { list-style: none; cursor: pointer; }
+    details summary::-webkit-details-marker { display: none; }
+    details .chev { transition: transform .45s var(--spring); }
+    details[open] .chev { transform: rotate(45deg); }
+    details summary:hover .q { color: #fff; }
+    details summary:active .q { opacity: .75; }
+    details[open] .ans { animation: fadeUp .5s var(--ease-out) both; }
+    details .ans { transform: translateY(-6px); opacity: 0; }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; animation-delay: 0s !important; }
+      .marquee-track { animation: none; }
+    }
+  </style>
+</head>
+<body class="font-body text-[17px]">
+
+  <canvas id="wires" aria-hidden="true"></canvas>
+
+  <div class="page">
+  <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[70] btn btn-primary">Skip to content</a>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 border-b border-white/[.06] bg-navy/70 backdrop-blur-xl">
+    <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4" aria-label="Main">
+      <a href="#" class="link rounded-md after:hidden" aria-label="AI Automation LL2C home">
+        <img src="brand_assets/Logo-complete.svg" alt="LL2C" class="h-10 w-auto -ml-2" />
+      </a>
+      <div class="hidden items-center gap-8 text-[15px] md:flex">
+        <a href="#services" class="link">Services</a>
+        <a href="#process" class="link">How it works</a>
+        <a href="#savings" class="link">Savings</a>
+        <a href="#faq" class="link">FAQ</a>
+      </div>
+      <a href="#contact" class="btn btn-primary !py-3 !px-5 text-sm">Book a free audit</a>
+    </nav>
+    <span id="progress" aria-hidden="true"></span>
+  </header>
+
+  <main id="main">
+
+    <!-- Hero -->
+    <section class="relative overflow-hidden">
+      <svg class="pointer-events-none absolute right-0 top-0 h-full w-full opacity-60" viewBox="0 0 1440 760" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
+        <path d="M640 740 H900 L1000 640 H1220 L1340 520 H1440" fill="none" stroke="#0B3954" stroke-width="22" stroke-linejoin="round" opacity=".55" />
+      </svg>
+
+      <div class="relative mx-auto grid max-w-6xl items-center gap-16 px-6 pb-16 pt-16 md:pt-24 lg:grid-cols-12 lg:pb-20">
+        <div class="lg:col-span-7">
+          <p class="hero-in mb-6 inline-flex items-center gap-2 rounded-full border border-aqua/20 bg-aqua/[.06] px-3 py-1 text-sm text-ice" style="--d:.05s">
+            <span class="h-1.5 w-1.5 rounded-full bg-aqua"></span>
+            AI automation for small and mid-sized teams
+          </p>
+          <h1 id="headline" class="display text-[2.75rem] font-extrabold sm:text-6xl lg:text-[4.25rem]">We build the automations that run your back office</h1>
+          <p class="hero-in measure mt-6 text-lg text-ice/90" style="--d:.85s">
+            AI Automation LL2C takes the repetitive work off your team's plate: answering leads, sorting support requests, entering data and sending reports. We design it, build it on the tools you already use, and keep it running.
+          </p>
+          <div class="hero-in mt-10 flex flex-wrap items-center gap-4" style="--d:1s">
+            <a href="#contact" class="btn btn-primary">Book a free audit</a>
+            <a href="#services" class="btn btn-ghost">See what we automate</a>
+          </div>
+        </div>
+
+        <!-- Live run panel -->
+        <div class="hero-in lg:col-span-5" style="--d:.6s">
+          <div class="spot surface-floating relative rounded-3xl p-6 sm:p-8" role="group" aria-label="Example automations running">
+            <span class="spot-glow" aria-hidden="true"></span>
+            <div class="mb-5 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <img src="brand_assets/logo-favicon.svg" alt="" class="h-7 w-7" />
+                <span class="font-display text-[15px] font-semibold">Live workflow</span>
+              </div>
+              <span class="flex items-center gap-2 text-xs text-aqua">
+                <span class="relative flex h-2 w-2"><span class="absolute inset-0 rounded-full bg-aqua opacity-60" id="pulse"></span><span class="relative h-2 w-2 rounded-full bg-aqua"></span></span>
+                Running
+              </span>
+            </div>
+
+            <div class="relative mb-6 inline-flex rounded-full border border-ice/10 bg-navy/60 p-1" role="tablist" aria-label="Choose a workflow" id="tabs">
+              <span class="tab-pill" id="tabPill" aria-hidden="true"></span>
+              <button class="tab relative z-10" role="tab" aria-selected="true" data-flow="0">Lead</button>
+              <button class="tab relative z-10" role="tab" aria-selected="false" data-flow="1">Support</button>
+              <button class="tab relative z-10" role="tab" aria-selected="false" data-flow="2">Invoice</button>
+            </div>
+
+            <div class="run-body" id="runBody">
+              <ol class="relative space-y-5" id="run">
+                <span class="absolute left-[9px] top-2 bottom-2 w-px bg-ice/15" aria-hidden="true"></span>
+                <span class="run-track-fill absolute left-[9px] top-2 bottom-2 w-px bg-aqua" id="runFill" aria-hidden="true"></span>
+              </ol>
+              <div class="run-done mt-7 rounded-2xl border border-lime/25 bg-lime/[.07] px-4 py-3 text-sm text-ice" id="runDone"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tools marquee -->
+      <div class="hero-in relative mx-auto max-w-6xl px-6 pb-20 lg:pb-24" style="--d:1.2s">
+        <p class="mb-4 text-sm text-ice/60">Connects to the tools your team already uses</p>
+        <div class="marquee overflow-hidden" aria-label="Gmail, Outlook, WhatsApp, HubSpot, Pipedrive, Salesforce, Google Sheets, Notion, Slack, Stripe, Shopify, Airtable, Calendly, Make, n8n and more">
+          <div class="marquee-track gap-3" aria-hidden="true" id="marquee"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services -->
+    <section id="services" class="scroll-mt-20 py-20 lg:py-24">
+      <div class="mx-auto max-w-6xl px-6">
+        <div class="grid gap-6 lg:grid-cols-12">
+          <h2 class="reveal display text-4xl font-extrabold sm:text-5xl lg:col-span-6">What we automate</h2>
+          <p class="reveal measure text-ice/80 lg:col-span-6 lg:pt-3" style="--d:.1s">Most of the hours we win back come from six kinds of work. If a task is repetitive, follows rules and lives in software, it can usually be automated.</p>
+        </div>
+
+        <div class="reveal spot surface-elevated mt-14 rounded-3xl px-6 sm:px-10" style="--d:.15s">
+          <span class="spot-glow" aria-hidden="true"></span>
+          <ul class="divide-y divide-ice/10">
+            <li class="svc grid gap-3 py-8 md:grid-cols-12 md:gap-8">
+              <h3 class="display flex items-center gap-3 text-xl font-bold md:col-span-4"><span class="svc-node h-2 w-2 rounded-full bg-aqua"></span>Lead follow-up</h3>
+              <p class="text-ice/80 md:col-span-5">Every inquiry gets a reply within a minute, is scored and lands with the right salesperson. No lead sits in an inbox over the weekend.</p>
+              <p class="text-sm text-ice/50 md:col-span-3 md:text-right">Forms, email, WhatsApp, CRM</p>
+            </li>
+            <li class="svc grid gap-3 py-8 md:grid-cols-12 md:gap-8">
+              <h3 class="display flex items-center gap-3 text-xl font-bold md:col-span-4"><span class="svc-node h-2 w-2 rounded-full bg-aqua"></span>Customer support</h3>
+              <p class="text-ice/80 md:col-span-5">An AI assistant answers common questions from your own documents and passes the rest to your team with the full context.</p>
+              <p class="text-sm text-ice/50 md:col-span-3 md:text-right">Website chat, email, help desk</p>
+            </li>
+            <li class="svc grid gap-3 py-8 md:grid-cols-12 md:gap-8">
+              <h3 class="display flex items-center gap-3 text-xl font-bold md:col-span-4"><span class="svc-node h-2 w-2 rounded-full bg-aqua"></span>Documents and data entry</h3>
+              <p class="text-ice/80 md:col-span-5">Invoices, contracts, receipts and forms are read automatically and the data goes straight into your systems.</p>
+              <p class="text-sm text-ice/50 md:col-span-3 md:text-right">PDFs, scans, ERP, spreadsheets</p>
+            </li>
+            <li class="svc grid gap-3 py-8 md:grid-cols-12 md:gap-8">
+              <h3 class="display flex items-center gap-3 text-xl font-bold md:col-span-4"><span class="svc-node h-2 w-2 rounded-full bg-aqua"></span>Reports</h3>
+              <p class="text-ice/80 md:col-span-5">Your weekly numbers are pulled from every tool and delivered to your inbox, without anyone copying and pasting.</p>
+              <p class="text-sm text-ice/50 md:col-span-3 md:text-right">Sheets, dashboards, Slack</p>
+            </li>
+            <li class="svc grid gap-3 py-8 md:grid-cols-12 md:gap-8">
+              <h3 class="display flex items-center gap-3 text-xl font-bold md:col-span-4"><span class="svc-node h-2 w-2 rounded-full bg-aqua"></span>Client onboarding</h3>
+              <p class="text-ice/80 md:col-span-5">Contracts, welcome emails, folders, accounts and kickoff calls are set up the moment a deal is signed.</p>
+              <p class="text-sm text-ice/50 md:col-span-3 md:text-right">E-signature, Drive, calendar</p>
+            </li>
+            <li class="svc grid gap-3 py-8 md:grid-cols-12 md:gap-8">
+              <h3 class="display flex items-center gap-3 text-xl font-bold md:col-span-4"><span class="svc-node h-2 w-2 rounded-full bg-aqua"></span>Custom AI agents</h3>
+              <p class="text-ice/80 md:col-span-5">For work that is specific to your business, we build agents that handle multi-step tasks and ask a person before anything important.</p>
+              <p class="text-sm text-ice/50 md:col-span-3 md:text-right">Built around your process</p>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Process -->
+    <section id="process" class="scroll-mt-20 py-20 lg:py-24">
+      <div class="mx-auto max-w-6xl px-6">
+        <h2 class="reveal display max-w-2xl text-4xl font-extrabold sm:text-5xl">From first call to running automation in weeks</h2>
+        <p class="reveal measure mt-6 text-ice/80" style="--d:.1s">You don't need a technical team. We handle the build; you tell us how the work gets done today.</p>
+
+        <ol class="proc relative mt-16 grid gap-10 md:grid-cols-4 md:gap-8" data-observe>
+          <span class="proc-line absolute left-0 right-0 top-[19px] hidden h-px bg-gradient-to-r from-aqua via-aqua/50 to-transparent md:block" aria-hidden="true"></span>
+          <li class="relative">
+            <span class="proc-num relative z-10 grid h-10 w-10 place-items-center rounded-full border border-aqua/60 bg-navy font-display text-sm font-bold text-aqua" style="--d:.1s">1</span>
+            <h3 class="display mt-6 text-xl font-bold">Audit</h3>
+            <p class="mt-3 text-ice/75">A free 45-minute call. We map where your team's time goes and pick the tasks worth automating first.</p>
+          </li>
+          <li class="relative">
+            <span class="proc-num relative z-10 grid h-10 w-10 place-items-center rounded-full border border-aqua/60 bg-navy font-display text-sm font-bold text-aqua" style="--d:.45s">2</span>
+            <h3 class="display mt-6 text-xl font-bold">Build</h3>
+            <p class="mt-3 text-ice/75">We build on the tools you already pay for and test with your real data. Most projects take two to four weeks.</p>
+          </li>
+          <li class="relative">
+            <span class="proc-num relative z-10 grid h-10 w-10 place-items-center rounded-full border border-aqua/60 bg-navy font-display text-sm font-bold text-aqua" style="--d:.8s">3</span>
+            <h3 class="display mt-6 text-xl font-bold">Launch</h3>
+            <p class="mt-3 text-ice/75">The automation runs alongside your team first. You approve the results before it takes over.</p>
+          </li>
+          <li class="relative">
+            <span class="proc-num relative z-10 grid h-10 w-10 place-items-center rounded-full border border-aqua/60 bg-navy font-display text-sm font-bold text-aqua" style="--d:1.15s">4</span>
+            <h3 class="display mt-6 text-xl font-bold">Maintain</h3>
+            <p class="mt-3 text-ice/75">We monitor it, fix what breaks when your tools change, and send you a monthly report on hours saved.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Example before/after -->
+    <section id="example" class="scroll-mt-20 py-20 lg:py-24">
+      <div class="mx-auto max-w-6xl px-6">
+        <h2 class="reveal display max-w-2xl text-4xl font-extrabold sm:text-5xl">One inquiry, before and after</h2>
+        <p class="reveal measure mt-6 text-ice/80" style="--d:.1s">Here is what answering a single new lead looks like for a typical service business.</p>
+
+        <div class="mt-14 grid gap-6 lg:grid-cols-2" data-observe>
+          <div class="reveal rounded-3xl border border-coral/20 bg-coral/[.05] p-8 backdrop-blur-sm sm:p-10">
+            <div class="flex items-baseline justify-between">
+              <h3 class="display text-2xl font-bold">By hand</h3>
+              <p class="display text-3xl font-extrabold tabular-nums text-coral">~<span data-count="25">25</span> min</p>
+            </div>
+            <div class="mt-6 h-1.5 overflow-hidden rounded-full bg-ice/10"><div class="bar h-full rounded-full bg-coral" style="--to:1"></div></div>
+            <ul class="mt-8 space-y-4 text-ice/80">
+              <li class="flex gap-3"><span class="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-coral"></span>Someone notices the email, sometimes hours later</li>
+              <li class="flex gap-3"><span class="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-coral"></span>Reads it and decides whether it's worth pursuing</li>
+              <li class="flex gap-3"><span class="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-coral"></span>Copies the details into the CRM</li>
+              <li class="flex gap-3"><span class="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-coral"></span>Writes a reply and finds a free slot for a call</li>
+            </ul>
+          </div>
+          <div class="reveal spot surface-floating rounded-3xl p-8 sm:p-10" style="--d:.15s">
+            <span class="spot-glow" aria-hidden="true"></span>
+            <div class="flex items-baseline justify-between">
+              <h3 class="display text-2xl font-bold">Automated</h3>
+              <p class="display text-3xl font-extrabold tabular-nums text-aqua"><span data-count="4">4</span> sec</p>
+            </div>
+            <div class="mt-6 h-1.5 overflow-hidden rounded-full bg-ice/10"><div class="bar h-full rounded-full bg-aqua" style="--to:.03"></div></div>
+            <ul class="mt-8 space-y-4 text-ice/80">
+              <li class="flex gap-3"><span class="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-aqua"></span>The inquiry is picked up the moment it arrives, day or night</li>
+              <li class="flex gap-3"><span class="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-aqua"></span>AI qualifies it against the rules you set</li>
+              <li class="flex gap-3"><span class="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-aqua"></span>The CRM is updated with every detail</li>
+              <li class="flex gap-3"><span class="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-aqua"></span>A personal reply goes out with a booking link. Your team just takes the call.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Savings calculator -->
+    <section id="savings" class="scroll-mt-20 py-20 lg:py-24">
+      <div class="mx-auto max-w-6xl px-6">
+        <h2 class="reveal display max-w-2xl text-4xl font-extrabold sm:text-5xl">How much time could you get back?</h2>
+        <p class="reveal measure mt-6 text-ice/80" style="--d:.1s">Move the sliders to match your team. The estimate updates as you go.</p>
+
+        <div class="mt-14 grid gap-6 lg:grid-cols-12">
+          <form class="reveal surface-elevated rounded-3xl p-8 sm:p-10 lg:col-span-7" id="calc" onsubmit="return false">
+            <div class="space-y-10">
+              <div>
+                <div class="flex items-baseline justify-between gap-4">
+                  <label for="people" class="font-display font-semibold">People doing repetitive tasks</label>
+                  <output for="people" class="display text-2xl font-bold tabular-nums text-aqua" id="peopleOut">5</output>
+                </div>
+                <input id="people" type="range" min="1" max="50" value="5" class="mt-3" />
+              </div>
+              <div>
+                <div class="flex items-baseline justify-between gap-4">
+                  <label for="hours" class="font-display font-semibold">Hours each spends on them per week</label>
+                  <output for="hours" class="display text-2xl font-bold tabular-nums text-aqua" id="hoursOut">10</output>
+                </div>
+                <input id="hours" type="range" min="1" max="30" value="10" class="mt-3" />
+              </div>
+              <div>
+                <div class="flex items-baseline justify-between gap-4">
+                  <label for="rate" class="font-display font-semibold">Cost of one hour of their time</label>
+                  <output for="rate" class="display text-2xl font-bold tabular-nums text-aqua" id="rateOut">$30</output>
+                </div>
+                <input id="rate" type="range" min="10" max="150" step="5" value="30" class="mt-3" />
+              </div>
+            </div>
+          </form>
+
+          <div class="reveal spot surface-floating flex flex-col justify-between rounded-3xl p-8 sm:p-10 lg:col-span-5" style="--d:.15s">
+            <span class="spot-glow" aria-hidden="true"></span>
+            <div>
+              <p class="text-ice/70">Estimated time back each month</p>
+              <p class="display mt-2 text-6xl font-extrabold tabular-nums sm:text-7xl"><span id="hoursBack">152</span><span class="ml-2 text-2xl font-bold tracking-normal text-ice/70">hours</span></p>
+              <p class="mt-8 text-ice/70">Worth in team time</p>
+              <p class="display mt-2 text-4xl font-extrabold tabular-nums text-lime">$<span id="moneyBack">4,547</span><span class="ml-2 text-lg font-bold tracking-normal text-ice/70">per month</span></p>
+            </div>
+            <div class="mt-10">
+              <p class="text-sm text-ice/55">Assumes 70% of that work can be automated. Your free audit gives you the real number.</p>
+              <a href="#contact" class="btn btn-primary mt-6 w-full sm:w-auto">Get my exact number</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="scroll-mt-20 py-20 lg:py-24">
+      <div class="mx-auto grid max-w-6xl gap-12 px-6 lg:grid-cols-12">
+        <div class="lg:col-span-4">
+          <h2 class="reveal display text-4xl font-extrabold sm:text-5xl">Questions we hear often</h2>
+        </div>
+        <div class="reveal divide-y divide-ice/10 border-y border-ice/10 lg:col-span-8" style="--d:.1s">
+          <details class="py-6">
+            <summary class="flex items-center justify-between gap-6 rounded-md">
+              <span class="q display text-lg font-semibold text-ice">Do we need to change the software we use?</span>
+              <span class="chev grid h-8 w-8 shrink-0 place-items-center rounded-full border border-ice/20 text-aqua" aria-hidden="true">+</span>
+            </summary>
+            <p class="ans measure mt-4 text-ice/75">No. We connect the tools you already have. If something is missing, we'll recommend the simplest option and explain why.</p>
+          </details>
+          <details class="py-6">
+            <summary class="flex items-center justify-between gap-6 rounded-md">
+              <span class="q display text-lg font-semibold text-ice">Is our data safe?</span>
+              <span class="chev grid h-8 w-8 shrink-0 place-items-center rounded-full border border-ice/20 text-aqua" aria-hidden="true">+</span>
+            </summary>
+            <p class="ans measure mt-4 text-ice/75">Your data stays in your accounts. Automations only get the access they need, and we document exactly what each one can see and do.</p>
+          </details>
+          <details class="py-6">
+            <summary class="flex items-center justify-between gap-6 rounded-md">
+              <span class="q display text-lg font-semibold text-ice">What happens when the AI isn't sure?</span>
+              <span class="chev grid h-8 w-8 shrink-0 place-items-center rounded-full border border-ice/20 text-aqua" aria-hidden="true">+</span>
+            </summary>
+            <p class="ans measure mt-4 text-ice/75">It hands the task to a person on your team, with everything it found so far. You decide which actions always need a human to approve.</p>
+          </details>
+          <details class="py-6">
+            <summary class="flex items-center justify-between gap-6 rounded-md">
+              <span class="q display text-lg font-semibold text-ice">How much does it cost?</span>
+              <span class="chev grid h-8 w-8 shrink-0 place-items-center rounded-full border border-ice/20 text-aqua" aria-hidden="true">+</span>
+            </summary>
+            <p class="ans measure mt-4 text-ice/75">Each project has a fixed price, agreed after the audit, plus an optional monthly plan for maintenance. You'll know the cost and the expected hours saved before we start.</p>
+          </details>
+          <details class="py-6">
+            <summary class="flex items-center justify-between gap-6 rounded-md">
+              <span class="q display text-lg font-semibold text-ice">How long until we see results?</span>
+              <span class="chev grid h-8 w-8 shrink-0 place-items-center rounded-full border border-ice/20 text-aqua" aria-hidden="true">+</span>
+            </summary>
+            <p class="ans measure mt-4 text-ice/75">Most first automations are live within a month, and you see hours saved from the first week they run.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="contact" class="scroll-mt-20 px-6 pb-20 lg:pb-24">
+      <div class="reveal spot surface-floating relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] px-8 py-16 sm:px-14 sm:py-20">
+        <span class="spot-glow" aria-hidden="true"></span>
+        <svg class="pointer-events-none absolute -right-10 bottom-0 h-full w-2/3 opacity-70" viewBox="0 0 600 300" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">
+          <path d="M0 280 H220 L300 200 H440 L540 100 H620" fill="none" stroke="#70E4EF" stroke-opacity=".45" stroke-width="1.5" />
+          <path d="M60 310 H260 L340 230 H480 L580 130 H640" fill="none" stroke="#031B2F" stroke-opacity=".6" stroke-width="22" stroke-linejoin="round" />
+        </svg>
+        <div class="relative max-w-2xl">
+          <h2 class="display text-4xl font-extrabold sm:text-5xl">Tell us which task eats up your week.</h2>
+          <p class="measure mt-6 text-lg text-ice/85">In a free 45-minute audit we'll show you what can be automated, how long it takes to build and how many hours it gives back.</p>
+          <div class="mt-10 flex flex-wrap gap-4">
+            <a href="#" class="btn btn-primary">Book a free audit</a>
+            <a href="#services" class="btn btn-ghost">See what we automate</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-white/[.06] bg-navy/60 backdrop-blur-sm">
+    <div class="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-10 text-sm text-ice/60 md:flex-row md:items-center md:justify-between">
+      <div class="flex items-center gap-4">
+        <img src="brand_assets/Logo-complete.svg" alt="LL2C" class="h-8 w-auto -ml-1.5" />
+        <span>Technology, automation and AI.</span>
+      </div>
+      <div class="flex flex-wrap gap-6">
+        <a href="#services" class="link">Services</a>
+        <a href="#process" class="link">How it works</a>
+        <a href="#faq" class="link">FAQ</a>
+        <span>© 2026 AI Automation LL2C</span>
+      </div>
+    </div>
+  </footer>
+  </div>
+
+  <script>
+  (() => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const fine = window.matchMedia('(pointer: fine)').matches;
+
+    /* ---------- Hero headline: split words for the rise-in ---------- */
+    const h1 = document.getElementById('headline');
+    const words = h1.textContent.trim().split(/\s+/);
+    h1.setAttribute('aria-label', h1.textContent.trim());
+    h1.innerHTML = words.map((w, i) => `<span class="w" aria-hidden="true"><span style="--i:${i}">${w}</span></span>`).join(' ');
+
+    /* ---------- Wire network background (canvas) ---------- */
+    const cv = document.getElementById('wires');
+    const ctx = cv.getContext('2d');
+    const G = 48;
+    let W, H, dpr, traces = [], packets = [], faint, bright;
+    const mouse = { x: -9999, y: -9999, tx: -9999, ty: -9999 };
+    const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+
+    function layer(alpha, glow) {
+      const c = document.createElement('canvas');
+      c.width = W * dpr; c.height = H * dpr;
+      const g = c.getContext('2d');
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.lineJoin = 'round'; g.lineCap = 'round';
+      for (const t of traces) {
+        g.strokeStyle = `rgba(112,228,239,${alpha})`;
+        g.lineWidth = 1;
+        g.beginPath();
+        t.pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y));
+        g.stroke();
+        const [ex, ey] = t.pts[t.pts.length - 1];
+        const [sx, sy] = t.pts[0];
+        for (const [x, y] of [[sx, sy], [ex, ey]]) {
+          g.beginPath(); g.arc(x, y, glow ? 3 : 2.5, 0, Math.PI * 2);
+          g.fillStyle = '#031B2F'; g.fill(); g.stroke();
+        }
+      }
+      return c;
+    }
+
+    function build() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth; H = window.innerHeight;
+      cv.width = W * dpr; cv.height = H * dpr;
+      cv.style.width = W + 'px'; cv.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      traces = [];
+      const n = Math.max(10, Math.round((W * H) / 42000));
+      for (let i = 0; i < n; i++) {
+        let x = ri(-2, Math.ceil(W / G) + 2) * G, y = ri(0, Math.ceil(H / G)) * G;
+        const dir = Math.random() < .5 ? 1 : -1;
+        const pts = [[x, y]];
+        const segs = ri(3, 5);
+        for (let s = 0; s < segs; s++) {
+          if (s % 2 === 0) { x += dir * G * ri(2, 6); }
+          else { const d = G * ri(1, 2); x += dir * d; y += (Math.random() < .5 ? -1 : 1) * d; }
+          pts.push([x, y]);
+        }
+        const lens = [];
+        let len = 0;
+        for (let k = 1; k < pts.length; k++) { const l = Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]); lens.push(l); len += l; }
+        traces.push({ pts, lens, len });
+      }
+      packets = traces.filter((_, i) => i % 2 === 0).map(t => ({ t, d: Math.random() * t.len, v: 50 + Math.random() * 80, wait: Math.random() * 3 }));
+      faint = layer(.07, false);
+      bright = layer(.45, true);
+    }
+
+    function pointAt(t, d) {
+      for (let k = 0; k < t.lens.length; k++) {
+        if (d <= t.lens[k]) {
+          const f = d / t.lens[k], a = t.pts[k], b = t.pts[k + 1];
+          return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+        }
+        d -= t.lens[k];
+      }
+      return t.pts[t.pts.length - 1];
+    }
+
+    let last = performance.now(), running = true;
+    function frame(now) {
+      const dt = Math.min((now - last) / 1000, .05); last = now;
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(faint, 0, 0, W, H);
+
+      // brighter wires under the cursor
+      mouse.x += (mouse.tx - mouse.x) * .12; mouse.y += (mouse.ty - mouse.y) * .12;
+      if (mouse.x > -999) {
+        ctx.save();
+        ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 190, 0, Math.PI * 2); ctx.clip();
+        const g = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 190);
+        g.addColorStop(0, 'rgba(112,228,239,.07)'); g.addColorStop(1, 'rgba(112,228,239,0)');
+        ctx.fillStyle = g; ctx.fillRect(mouse.x - 190, mouse.y - 190, 380, 380);
+        ctx.globalAlpha = .9; ctx.drawImage(bright, 0, 0, W, H);
+        ctx.restore();
+      }
+
+      // signal packets
+      for (const p of packets) {
+        if (p.wait > 0) { p.wait -= dt; continue; }
+        p.d += p.v * dt;
+        if (p.d > p.t.len + 70) { p.d = 0; p.wait = 1 + Math.random() * 4; continue; }
+        const steps = 8, trail = 70;
+        for (let s = 0; s < steps; s++) {
+          const d1 = p.d - trail + (trail / steps) * s, d2 = d1 + trail / steps;
+          if (d2 < 0 || d1 > p.t.len) continue;
+          const [x1, y1] = pointAt(p.t, Math.max(0, d1)), [x2, y2] = pointAt(p.t, Math.min(p.t.len, d2));
+          ctx.strokeStyle = `rgba(112,228,239,${(s + 1) / steps * .75})`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        }
+        if (p.d <= p.t.len) {
+          const [hx, hy] = pointAt(p.t, p.d);
+          ctx.fillStyle = 'rgba(112,228,239,.18)'; ctx.beginPath(); ctx.arc(hx, hy, 6, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#E8FCFF'; ctx.beginPath(); ctx.arc(hx, hy, 1.8, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      if (running) requestAnimationFrame(frame);
+    }
+
+    build();
+    if (reduce) { ctx.drawImage(faint, 0, 0, W, H); }
+    else {
+      requestAnimationFrame(frame);
+      document.addEventListener('visibilitychange', () => {
+        running = !document.hidden;
+        if (running) { last = performance.now(); requestAnimationFrame(frame); }
+      });
+    }
+    let rt;
+    window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { build(); if (reduce) ctx.drawImage(faint, 0, 0, W, H); }, 200); });
+    if (fine) {
+      window.addEventListener('pointermove', e => { mouse.tx = e.clientX; mouse.ty = e.clientY; if (mouse.x < -999) { mouse.x = e.clientX; mouse.y = e.clientY; } }, { passive: true });
+      document.addEventListener('pointerleave', () => { mouse.tx = mouse.ty = mouse.x = mouse.y = -9999; });
+    }
+
+    /* ---------- Scroll progress wire ---------- */
+    const prog = document.getElementById('progress');
+    const onScroll = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      prog.style.transform = `scaleX(${max > 0 ? window.scrollY / max : 0})`;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+    /* ---------- Cursor spotlight on panels ---------- */
+    if (fine) document.querySelectorAll('.spot').forEach(el => {
+      const glow = el.querySelector('.spot-glow');
+      el.addEventListener('pointermove', e => {
+        const r = el.getBoundingClientRect();
+        glow.style.transform = `translate(${e.clientX - r.left}px, ${e.clientY - r.top}px)`;
+      });
+    });
+
+    /* ---------- Tools marquee ---------- */
+    const tools = ['Gmail', 'Outlook', 'WhatsApp', 'HubSpot', 'Pipedrive', 'Salesforce', 'Google Sheets', 'Notion', 'Slack', 'Stripe', 'Shopify', 'Airtable', 'Calendly', 'Make', 'n8n'];
+    const pill = t => `<span class="shrink-0 rounded-full border border-ice/10 bg-navy-2/40 px-4 py-2 font-display text-sm font-semibold text-ice/80">${t}</span>`;
+    document.getElementById('marquee').innerHTML = [...tools, ...tools].map(pill).join('');
+
+    /* ---------- Hero workflow panel ---------- */
+    const flows = [
+      { steps: [
+          ['Contact form submitted', '“Hi, we need a quote for 3 locations…”', '0.0s'],
+          ['AI reads and qualifies it', 'Budget fits, urgent, assigned to Sales', '1.4s'],
+          ['CRM deal created', 'Contact, company and notes filled in', '2.1s'],
+          ['Personal reply sent', 'With a booking link for a call', '3.8s']],
+        done: '<span class="font-display font-semibold text-lime">Done in 3.8 seconds.</span> Done by hand, this takes about 25 minutes.' },
+      { steps: [
+          ['Customer asks about a refund', '“Can I return an order after 20 days?”', '0.0s'],
+          ['AI checks your return policy', 'Found the answer in your help docs', '1.1s'],
+          ['Reply written and sent', 'In your tone, with the return form link', '2.4s'],
+          ['Ticket tagged and closed', 'Logged as “Returns” in your help desk', '2.9s']],
+        done: '<span class="font-display font-semibold text-lime">Resolved in 2.9 seconds.</span> Your team only sees the tricky ones.' },
+      { steps: [
+          ['Invoice arrives by email', 'PDF from a supplier, 2 pages', '0.0s'],
+          ['AI extracts the details', 'Supplier, amount, tax and due date', '2.2s'],
+          ['Entered in your accounting', 'Matched to the right purchase order', '3.0s'],
+          ['Payment queued for approval', 'Your finance lead gets one click to approve', '3.6s']],
+        done: '<span class="font-display font-semibold text-lime">Filed in 3.6 seconds.</span> Typed by hand, this takes about 10 minutes.' },
+    ];
+    const run = document.getElementById('run');
+    const fill = document.getElementById('runFill');
+    const done = document.getElementById('runDone');
+    const body = document.getElementById('runBody');
+    const tabs = [...document.querySelectorAll('#tabs .tab')];
+    const pillEl = document.getElementById('tabPill');
+    const pulse = document.getElementById('pulse');
+    let current = 0, userPicked = false, timers = [];
+
+    const stepHTML = ([t, s, time]) => `
+      <li class="run-step relative flex items-start gap-4">
+        <span class="dot relative z-10 mt-1 grid h-[19px] w-[19px] place-items-center rounded-full border border-aqua bg-navy"><span class="h-2 w-2 rounded-full bg-aqua"></span></span>
+        <div class="flex-1">
+          <div class="flex items-baseline justify-between gap-3"><p class="font-display font-semibold">${t}</p><span class="stamp text-xs tabular-nums text-ice/60">${time}</span></div>
+          <p class="text-sm text-ice/70">${s}</p>
+        </div>
+      </li>`;
+
+    function movePill(i) {
+      const b = tabs[i];
+      pillEl.style.width = b.offsetWidth + 'px';
+      pillEl.style.transform = `translateX(${b.offsetLeft}px)`;
+    }
+
+    function render(i) {
+      run.querySelectorAll('.run-step').forEach(n => n.remove());
+      run.insertAdjacentHTML('beforeend', flows[i].steps.map(stepHTML).join(''));
+      done.innerHTML = flows[i].done;
+    }
+
+    function play(i) {
+      timers.forEach(clearTimeout); timers = [];
+      current = i;
+      tabs.forEach((t, k) => t.setAttribute('aria-selected', k === i ? 'true' : 'false'));
+      movePill(i);
+      if (reduce) { render(i); run.querySelectorAll('.run-step').forEach(s => s.classList.add('on')); fill.style.transform = 'scaleY(1)'; done.classList.add('on'); return; }
+      body.classList.add('swap');
+      timers.push(setTimeout(() => {
+        render(i);
+        done.classList.remove('on');
+        fill.style.transform = 'scaleY(0)';
+        body.classList.remove('swap');
+        const steps = [...run.querySelectorAll('.run-step')];
+        steps.forEach((s, k) => timers.push(setTimeout(() => {
+          s.classList.add('on');
+          fill.style.transform = `scaleY(${k / (steps.length - 1)})`;
+        }, 400 + k * 900)));
+        timers.push(setTimeout(() => done.classList.add('on'), 400 + steps.length * 900));
+        timers.push(setTimeout(() => play(userPicked ? i : (i + 1) % flows.length), 400 + steps.length * 900 + 3500));
+      }, 300));
+    }
+
+    tabs.forEach((t, k) => {
+      t.addEventListener('click', () => { userPicked = true; play(k); });
+      t.addEventListener('keydown', e => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          const n = (k + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+          tabs[n].focus(); userPicked = true; play(n);
+        }
+      });
+    });
+    if (!reduce) pulse.animate([{ transform: 'scale(1)', opacity: .6 }, { transform: 'scale(2.6)', opacity: 0 }], { duration: 1600, iterations: Infinity, easing: 'ease-out' });
+    document.fonts.ready.then(() => movePill(current));
+    window.addEventListener('resize', () => movePill(current));
+    setTimeout(() => play(0), reduce ? 0 : 700);
+
+    /* ---------- Scroll reveals, process line, count-ups ---------- */
+    const countUp = el => {
+      const to = +el.dataset.count;
+      if (reduce) { el.textContent = to; return; }
+      const t0 = performance.now(), dur = 1400;
+      const tick = now => {
+        const p = Math.min((now - t0) / dur, 1);
+        el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3)));
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        e.target.classList.add('in');
+        e.target.querySelectorAll('[data-count]').forEach(countUp);
+        io.unobserve(e.target);
+      });
+    }, { threshold: .2, rootMargin: '0px 0px -8% 0px' });
+    document.querySelectorAll('.reveal, [data-observe]').forEach(el => io.observe(el));
+    // count-ups inside non-observed reveal parents
+    document.querySelectorAll('[data-count]').forEach(el => { el.textContent = reduce ? el.dataset.count : '0'; });
+
+    /* ---------- Savings calculator ---------- */
+    const $ = id => document.getElementById(id);
+    const inputs = ['people', 'hours', 'rate'].map($);
+    const shown = { h: 0, m: 0 };
+    let anim;
+    const fmt = n => Math.round(n).toLocaleString('en-US');
+    function update() {
+      const [p, h, r] = inputs.map(i => +i.value);
+      inputs.forEach(i => i.style.setProperty('--p', ((i.value - i.min) / (i.max - i.min) * 100) + '%'));
+      $('peopleOut').textContent = p;
+      $('hoursOut').textContent = h;
+      $('rateOut').textContent = '$' + r;
+      const hrs = p * h * 4.33 * .7, money = hrs * r;
+      cancelAnimationFrame(anim);
+      if (reduce) { shown.h = hrs; shown.m = money; $('hoursBack').textContent = fmt(hrs); $('moneyBack').textContent = fmt(money); return; }
+      const from = { ...shown }, t0 = performance.now();
+      const tick = now => {
+        const k = Math.min((now - t0) / 450, 1), e = 1 - Math.pow(1 - k, 3);
+        shown.h = from.h + (hrs - from.h) * e; shown.m = from.m + (money - from.m) * e;
+        $('hoursBack').textContent = fmt(shown.h); $('moneyBack').textContent = fmt(shown.m);
+        if (k < 1) anim = requestAnimationFrame(tick);
+      };
+      anim = requestAnimationFrame(tick);
+    }
+    inputs.forEach(i => i.addEventListener('input', update));
+    update();
+  })();
+  </script>
+</body>
+</html>
